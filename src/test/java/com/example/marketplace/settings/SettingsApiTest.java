@@ -35,7 +35,7 @@ class SettingsApiTest {
     @Test
     void putSavesSettingsAndGetReturnsThemInSnakeCase() {
         String body = """
-                {"floor_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com", "spam.net"]}
+                {"min_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com", "spam.net"]}
                 """;
 
         RestAssured.given()
@@ -46,7 +46,7 @@ class SettingsApiTest {
         RestAssured.given()
                 .when().get("/accounts/acc-put/settings")
                 .then().statusCode(200)
-                .body("floor_price", equalTo(1.5f))
+                .body("min_price", equalTo(1.5f))
                 .body("currency", equalTo("USD"))
                 .body("blocked_domains", contains("bad.com", "spam.net"));
     }
@@ -54,7 +54,7 @@ class SettingsApiTest {
     @Test
     void putReturns400WhenRequiredFieldMissing() {
         String body = """
-                {"floor_price": 1.5, "currency": "USD"}
+                {"min_price": 1.5, "currency": "USD"}
                 """;
 
         RestAssured.given()
