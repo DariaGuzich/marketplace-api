@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # Юнит- и API-тесты, затем приложение поднимается и openapi.json перегенерируется из кода
+      - name: Tests and openapi.json generation
+        run: mvn -B verify
+
+      # Если разработчик поменял код, но не закоммитил перегенерированный openapi.json, здесь будет diff
+      - name: Committed openapi.json matches the code
+        run: git diff --exit-code openapi.json
+
+  breaking-changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: git fetch --depth=1 origin ${{ github.base_ref }}
+
+      # Сравнивает openapi.json из ветки PR с openapi.json из main и падает на breaking changes
+      - uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: 'origin/${{ github.base_ref }}:openapi.json'
+          revision: 'HEAD:openapi.json'
+          fail-on: ERR
+          review: false

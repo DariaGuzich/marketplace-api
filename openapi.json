@@ -1,0 +1,98 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:18080",
+    "description" : "Generated server url"
+  } ],
+  "paths" : {
+    "/accounts/{account_id}/settings" : {
+      "get" : {
+        "operationId" : "getSettings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "account_id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            },
+            "description" : "Настройки аккаунта"
+          },
+          "404" : {
+            "description" : "Настройки для аккаунта ещё не сохранены"
+          }
+        },
+        "tags" : [ "settings-controller" ]
+      },
+      "put" : {
+        "operationId" : "updateSettings",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "account_id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Settings"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "settings-controller" ]
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "Settings" : {
+        "type" : "object",
+        "properties" : {
+          "blocked_domains" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "floor_price" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "blocked_domains", "currency", "floor_price" ]
+      }
+    }
+  }
+}
