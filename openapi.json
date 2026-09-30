@@ -87,11 +87,11 @@
           "currency" : {
             "type" : "string"
           },
-          "floor_price" : {
+          "min_price" : {
             "type" : "number"
           }
         },
-        "required" : [ "blocked_domains", "currency", "floor_price" ]
+        "required" : [ "blocked_domains", "currency", "min_price" ]
       }
     }
   }

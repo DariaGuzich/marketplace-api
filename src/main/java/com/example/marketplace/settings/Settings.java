@@ -16,7 +16,7 @@ import java.util.List;
  * {@code @NotNull} делает поле обязательным при валидации и помечает его как required в openapi.json.
  */
 public record Settings(
-        @JsonProperty("floor_price") @NotNull BigDecimal floorPrice,
+        @JsonProperty("min_price") @NotNull BigDecimal floorPrice,
         @JsonProperty("currency") @NotNull String currency,
         @JsonProperty("blocked_domains") @NotNull List<String> blockedDomains) {
 }
