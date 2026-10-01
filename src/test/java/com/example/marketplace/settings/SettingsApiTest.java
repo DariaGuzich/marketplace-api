@@ -1,11 +1,13 @@
 package com.example.marketplace.settings;
 
+import com.example.marketplace.TestcontainersConfiguration;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -13,8 +15,10 @@ import static org.hamcrest.Matchers.equalTo;
 /**
  * API-тесты: приложение поднимается целиком на случайном порту, запросы идут по настоящему HTTP.
  * Проверяем контракт так, как его видит клиент (BFF): пути, статусы и JSON в snake_case.
+ * База — настоящий PostgreSQL из Testcontainers.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestcontainersConfiguration.class)
 class SettingsApiTest {
 
     @LocalServerPort
@@ -48,7 +52,8 @@ class SettingsApiTest {
                 .then().statusCode(200)
                 .body("floor_price", equalTo(1.5f))
                 .body("currency", equalTo("USD"))
-                .body("blocked_domains", contains("bad.com", "spam.net"));
+                .body("blocked_domains", contains("bad.com", "spam.net"))
+                .body("version", equalTo(0));
     }
 
     @Test

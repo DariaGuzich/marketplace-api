@@ -1,14 +1,9 @@
 package com.example.marketplace.settings;
 
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Слой хранения. Сейчас единственная реализация хранит данные в памяти;
- * позже появится реализация на PostgreSQL, а остальной код не изменится.
+ * Слой хранения настроек. Реализацию (SQL-запросы к PostgreSQL) генерирует Spring Data JPA.
  */
-public interface SettingsRepository {
-
-    Optional<Settings> findByAccountId(String accountId);
-
-    Settings save(String accountId, Settings settings);
+public interface SettingsRepository extends JpaRepository<SettingsEntity, String> {
 }

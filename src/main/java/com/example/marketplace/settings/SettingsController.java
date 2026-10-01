@@ -34,7 +34,7 @@ public class SettingsController {
 
     @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public Settings updateSettings(@PathVariable("account_id") String accountId,
-                                   @Valid @RequestBody Settings settings) {
-        return service.update(accountId, settings);
+                                   @Valid @RequestBody SettingsValues values) {
+        return service.update(accountId, values);
     }
 }

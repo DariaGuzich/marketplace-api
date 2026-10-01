@@ -39,9 +39,45 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- Хранение в PostgreSQL через JPA (Hibernate) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Миграции схемы БД: при старте приложения применяет новые файлы из db/migration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers: настоящий PostgreSQL в Docker на время тестов -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -56,7 +92,8 @@
         <plugins>
             <!--
                 Генерация openapi.json на фазе verify (mvn verify):
-                1. pre-integration-test: spring-boot:start поднимает приложение на ${openapi.port};
+                1. pre-integration-test: spring-boot:start поднимает приложение на ${openapi.port}
+                   (через TestMarketplaceApiApplication: PostgreSQL для него поднимает Testcontainers);
                 2. integration-test: springdoc-openapi-maven-plugin скачивает /v3/api-docs в openapi.json в корне репозитория;
                 3. post-integration-test: spring-boot:stop останавливает приложение.
             -->
@@ -71,6 +108,12 @@
                             <goal>stop</goal>
                         </goals>
                         <configuration>
+                            <mainClass>com.example.marketplace.TestMarketplaceApiApplication</mainClass>
+                            <!-- тестовые зависимости (Testcontainers) и скомпилированные тестовые классы -->
+                            <useTestClasspath>true</useTestClasspath>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${project.build.testOutputDirectory}</additionalClasspathElement>
+                            </additionalClasspathElements>
                             <arguments>
                                 <argument>--server.port=${openapi.port}</argument>
                             </arguments>
