@@ -1,13 +1,14 @@
 package com.example.marketplace.settings;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Значения настроек без версии: тело запроса PUT и данные конфига в outbox.
+ * Тело запроса PUT: новые значения настроек и (необязательно) версия, которую видел клиент.
  * <p>
  * {@code @JsonProperty} задаёт имя поля в JSON (snake_case). Эту аннотацию читают и Spring
  * при сериализации (Jackson 3), и springdoc при генерации openapi.json (Jackson 2),
@@ -18,5 +19,7 @@ import java.util.List;
 public record SettingsValues(
         @JsonProperty("floor_price") @NotNull BigDecimal floorPrice,
         @JsonProperty("currency") @NotNull String currency,
-        @JsonProperty("blocked_domains") @NotNull List<String> blockedDomains) {
+        @JsonProperty("blocked_domains") @NotNull List<String> blockedDomains,
+        @Schema(description = "Версия, которую видел клиент. Если передана и не совпадает с текущей — 409 Conflict.")
+        @JsonProperty("version") Long version) {
 }

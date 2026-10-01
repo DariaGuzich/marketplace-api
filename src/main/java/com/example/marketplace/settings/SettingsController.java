@@ -33,6 +33,8 @@ public class SettingsController {
     }
 
     @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiResponse(responseCode = "200", description = "Сохранённые настройки")
+    @ApiResponse(responseCode = "409", description = "Переданная version не совпадает с текущей, или настройки одновременно изменил другой запрос", content = @Content)
     public Settings updateSettings(@PathVariable("account_id") String accountId,
                                    @Valid @RequestBody SettingsValues values) {
         return service.update(accountId, values);

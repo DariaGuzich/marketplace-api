@@ -1,5 +1,6 @@
 package com.example.marketplace.settings;
 
+import com.example.marketplace.outbox.ConfigPayload;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -37,10 +38,18 @@ public class SettingsEntity {
         this.accountId = accountId;
     }
 
-    public void setValues(SettingsValues values) {
+    public void setValues(ConfigPayload values) {
         this.floorPrice = values.floorPrice();
         this.currency = values.currency();
         this.blockedDomains = values.blockedDomains();
+    }
+
+    public ConfigPayload toPayload() {
+        return new ConfigPayload(floorPrice, currency, blockedDomains);
+    }
+
+    public String getAccountId() {
+        return accountId;
     }
 
     public Long getVersion() {

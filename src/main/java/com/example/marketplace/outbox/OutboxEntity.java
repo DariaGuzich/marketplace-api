@@ -1,6 +1,5 @@
 package com.example.marketplace.outbox;
 
-import com.example.marketplace.settings.SettingsValues;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -26,7 +25,7 @@ public class OutboxEntity {
 
     // Хранится в колонке JSONB как {"floor_price": ..., "currency": ..., "blocked_domains": [...]}
     @JdbcTypeCode(SqlTypes.JSON)
-    private SettingsValues payload;
+    private ConfigPayload payload;
 
     @Enumerated(EnumType.STRING)
     private OutboxStatus status;
@@ -34,7 +33,7 @@ public class OutboxEntity {
     protected OutboxEntity() {
     }
 
-    public OutboxEntity(String accountId, Long version, SettingsValues payload) {
+    public OutboxEntity(String accountId, Long version, ConfigPayload payload) {
         this.accountId = accountId;
         this.version = version;
         this.payload = payload;
@@ -49,7 +48,7 @@ public class OutboxEntity {
         return version;
     }
 
-    public SettingsValues getPayload() {
+    public ConfigPayload getPayload() {
         return payload;
     }
 

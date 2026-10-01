@@ -12,21 +12,54 @@ marketplace-ui  →  marketplace-bff  →  marketplace-api (этот репоз�
 | Метод | Путь | Ответ |
 |---|---|---|
 | GET | `/accounts/{account_id}/settings` | 200 и настройки; 404, если настройки ещё не сохранены |
-| PUT | `/accounts/{account_id}/settings` | 200 и сохранённые настройки; 400, если не хватает поля |
+| PUT | `/accounts/{account_id}/settings` | 200 и сохранённые настройки; 400, если не хватает поля; 409, если `version` устарела |
+| POST | `/accounts/{account_id}/blocked-domains` | 200 и обновлённые настройки; 404, если настроек нет; 409 при одновременном изменении |
 
-PUT полностью заменяет настройки, все три поля обязательны:
+PUT полностью заменяет настройки, три поля обязательны, `version` — нет:
 
 ```json
-{ "floor_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com"] }
+{ "floor_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com"], "version": 3 }
 ```
 
-Ответ — те же поля и `version`:
+Ответ — значения и текущая `version`:
 
 ```json
-{ "floor_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com"], "version": 0 }
+{ "floor_price": 1.5, "currency": "USD", "blocked_domains": ["bad.com"], "version": 4 }
+```
+
+POST добавляет один домен в конец списка (заголовок `Idempotency-Key` необязателен):
+
+```json
+{ "domain": "bad.com" }
 ```
 
 Поля в snake_case намеренно: в BFF видно преобразование в camelCase.
+
+## Идемпотентность и optimistic locking
+
+**Идемпотентность.** PUT идемпотентен сам по себе: повтор того же запроса даёт тот же результат.
+POST `/blocked-domains` — нет: каждый вызов добавляет домен, повтор (например, retry после таймаута)
+добавит его ещё раз. Защита — заголовок `Idempotency-Key`:
+- первый запрос с ключом выполняется, ответ сохраняется в таблицу `idempotency_keys` **в той же транзакции**,
+  что и изменение настроек;
+- повтор с тем же ключом не выполняет операцию, а возвращает сохранённый ответ.
+
+Ключ генерирует клиент, один на одну логическую операцию: при retry он отправляет тот же ключ.
+
+**Optimistic locking.** Клиент прочитал настройки (`version: 3`), поменял и отправил PUT с `"version": 3`.
+Если за это время кто-то успел записать (`version` уже 4), API отвечает **409 Conflict**, и клиент должен
+перечитать данные. Без этого вторая запись молча затирает первую — **lost update**.
+
+Защита работает на двух уровнях:
+
+| Уровень | Где | Ловит |
+|---|---|---|
+| проверка `version` клиента | `SettingsService.update` | клиент читал давно, кто-то записал после этого |
+| `@Version` в Hibernate (`UPDATE ... WHERE version = <прочитанная>`) | `SettingsEntity` | два запроса одновременно прочитали одну версию; второй UPDATE обновит 0 строк → `ConflictExceptionHandler` → 409 |
+
+Переменная `OPTIMISTIC_LOCKING_ENABLED=false` выключает **первый** уровень: `version` из запроса игнорируется,
+и lost update воспроизводится последовательными запросами (см. EXPERIMENTS.md). Второй уровень (`@Version`)
+выключить нельзя: одновременные записи Hibernate защищает всегда.
 
 ## Хранение: PostgreSQL, версии, outbox
 
@@ -34,7 +67,8 @@ PUT полностью заменяет настройки, все три пол
 src/main/java/com/example/marketplace/
   settings/  SettingsController → SettingsService → SettingsRepository (Spring Data JPA) → таблица settings
   outbox/    OutboxRepository → таблица outbox
-src/main/resources/db/migration/   миграции Flyway: V1, V2, V3
+  idempotency/  IdempotencyRepository → таблица idempotency_keys
+src/main/resources/db/migration/   миграции Flyway: V1–V4
 ```
 
 - **`version`** — колонка в `settings` с аннотацией `@Version`. Hibernate сам увеличивает её при каждом
@@ -57,8 +91,9 @@ src/main/resources/db/migration/   миграции Flyway: V1, V2, V3
 | `V1__create_settings.sql` | таблица `settings` |
 | `V2__add_settings_version.sql` | колонка `version`: **меняет существующие данные** — старые строки получают `version = 0` |
 | `V3__create_outbox.sql` | таблица `outbox` |
+| `V4__create_idempotency_keys.sql` | таблица `idempotency_keys` |
 
-Применённую миграцию менять нельзя (Flyway сверяет контрольные суммы). Любое изменение — новый файл `V4__...`.
+Применённую миграцию менять нельзя (Flyway сверяет контрольные суммы). Любое изменение — новый файл со следующим номером.
 
 ## Запуск
 
@@ -77,6 +112,7 @@ src/main/resources/db/migration/   миграции Flyway: V1, V2, V3
 | `PORT` | `8080` |
 | `DB_URL` | `jdbc:postgresql://localhost:5432/marketplace` |
 | `DB_USER` / `DB_PASSWORD` | `marketplace` / `marketplace` |
+| `OPTIMISTIC_LOCKING_ENABLED` | `true`; `false` — игнорировать `version` в PUT |
 
 API запускается раньше BFF и UI: BFF ходит в него, а UI ходит в BFF.
 
@@ -109,6 +145,9 @@ mvn verify    # тесты + перегенерация openapi.json
 | `SettingsApiTest` | API по HTTP (RestAssured): пути, статусы, JSON в snake_case, `version` |
 | `SettingsServiceTest` | сервис с настоящей базой: версии, записи в outbox, «те же значения — нет новой версии» |
 | `SettingsTransactionTest` | запись в outbox принудительно падает (мок репозитория) → изменение settings откатилось |
+| `IdempotencyApiTest` | POST дважды с одним `Idempotency-Key` — домен добавлен один раз и ответ тот же; без ключа — дважды |
+| `OptimisticLockingApiTest` | PUT с устаревшей `version` → 409; два параллельных PUT с одной `version` → один 200, другой 409 |
+| `LostUpdateApiTest` | блокировка выключена: запись с устаревшей `version` проходит и затирает чужое изменение |
 | `MigrationsTest` | Flyway без Spring: все миграции на пустой базе; данные, вставленные до V2, после неё на месте и с `version = 0` |
 
 **Почему тесты сервиса теперь с базой, а не юнит.** Логика сервиса держится на поведении базы и Hibernate:
@@ -181,6 +220,13 @@ Jackson 3, а springdoc строит схему через Jackson 2. Глоба
 - Колонки `floor_price` и `currency` без ограничений (`NUMERIC` без точности, `VARCHAR(255)`): правил валидации
   в API пока нет.
 - Версии считаются с 0: так работает `@Version` в Hibernate.
+- Ключи идемпотентности хранятся вечно. В реальной системе у них срок жизни (например, 24 часа) и их чистят.
+- Повтор с тем же `Idempotency-Key`, но другим телом запроса возвращает сохранённый ответ. Реальные API
+  (например, Stripe) сохраняют и тело запроса и в этом случае отвечают ошибкой.
+- Два одновременных запроса с одним ключом оба не найдут его и оба начнут операцию. Второй получит 409 от
+  `@Version` (оба меняют одни и те же настройки). Отдельной блокировки «ключ в обработке» нет.
+- `version` в PUT необязательна, чтобы не ломать BFF и UI, которые её не передают. Для них защищает только
+  `@Version` от одновременных записей, а не проверка «клиент видел устаревшие данные».
 
 ## Куда встроится то, что будет позже
 
