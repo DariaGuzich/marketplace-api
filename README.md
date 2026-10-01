@@ -14,6 +14,8 @@ marketplace-ui  →  marketplace-bff  →  marketplace-api (этот репоз�
 | GET | `/accounts/{account_id}/settings` | 200 и настройки; 404, если настройки ещё не сохранены |
 | PUT | `/accounts/{account_id}/settings` | 200 и сохранённые настройки; 400, если не хватает поля; 409, если `version` устарела |
 | POST | `/accounts/{account_id}/blocked-domains` | 200 и обновлённые настройки; 404, если настроек нет; 409 при одновременном изменении |
+| GET | `/accounts` | список аккаунтов (у кого есть настройки) |
+| GET | `/settings?account_ids=a,b,c` | настройки нескольких аккаунтов одним запросом (batch для DataLoader в BFF); аккаунтов без настроек в ответе нет |
 | POST | `/accounts/{account_id}/settings/rollback?to_version=N` | 200 и новая версия со значениями версии N; 404, если нет настроек или такой версии |
 
 PUT полностью заменяет настройки, три поля обязательны, `version` — нет:
@@ -152,6 +154,7 @@ mvn verify    # тесты + перегенерация openapi.json
 | `SettingsTransactionTest` | запись в outbox принудительно падает (мок репозитория) → изменение settings откатилось |
 | `IdempotencyApiTest` | POST дважды с одним `Idempotency-Key` — домен добавлен один раз и ответ тот же; без ключа — дважды |
 | `OptimisticLockingApiTest` | PUT с устаревшей `version` → 409; два параллельных PUT с одной `version` → один 200, другой 409 |
+| `AccountsApiTest` | список аккаунтов и batch-запрос настроек |
 | `RollbackApiTest` | откат создаёт новую версию со старыми значениями и запись в outbox; 404 для неизвестной версии |
 | `LostUpdateApiTest` | блокировка выключена: запись с устаревшей `version` проходит и затирает чужое изменение |
 | `MigrationsTest` | Flyway без Spring: все миграции на пустой базе; данные, вставленные до V2, после неё на месте и с `version = 0` |
