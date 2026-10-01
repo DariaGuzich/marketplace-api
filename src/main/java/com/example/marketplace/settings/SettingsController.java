@@ -6,9 +6,11 @@ import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -38,5 +40,13 @@ public class SettingsController {
     public Settings updateSettings(@PathVariable("account_id") String accountId,
                                    @Valid @RequestBody SettingsValues values) {
         return service.update(accountId, values);
+    }
+
+    @PostMapping(path = "/rollback", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ApiResponse(responseCode = "200", description = "Создана новая версия со значениями версии to_version")
+    @ApiResponse(responseCode = "404", description = "Нет настроек аккаунта или такой версии", content = @Content)
+    public Settings rollback(@PathVariable("account_id") String accountId,
+                             @RequestParam("to_version") Long toVersion) {
+        return service.rollback(accountId, toVersion);
     }
 }
