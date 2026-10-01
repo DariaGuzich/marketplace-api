@@ -9,6 +9,56 @@
     "description" : "Generated server url"
   } ],
   "paths" : {
+    "/accounts/{account_id}/blocked-domains" : {
+      "post" : {
+        "operationId" : "addBlockedDomain",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "account_id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Повтор запроса с тем же ключом вернёт ответ первого запроса и не добавит домен ещё раз",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddBlockedDomainRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            },
+            "description" : "Домен добавлен, в ответе обновлённые настройки"
+          },
+          "404" : {
+            "description" : "Настройки для аккаунта ещё не сохранены"
+          },
+          "409" : {
+            "description" : "Настройки одновременно изменил другой запрос"
+          }
+        },
+        "tags" : [ "blocked-domains-controller" ]
+      }
+    },
     "/accounts/{account_id}/settings" : {
       "get" : {
         "operationId" : "getSettings",
@@ -66,7 +116,10 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Сохранённые настройки"
+          },
+          "409" : {
+            "description" : "Переданная version не совпадает с текущей, или настройки одновременно изменил другой запрос"
           }
         },
         "tags" : [ "settings-controller" ]
@@ -75,6 +128,16 @@
   },
   "components" : {
     "schemas" : {
+      "AddBlockedDomainRequest" : {
+        "type" : "object",
+        "properties" : {
+          "domain" : {
+            "type" : "string",
+            "minLength" : 1
+          }
+        },
+        "required" : [ "domain" ]
+      },
       "Settings" : {
         "type" : "object",
         "properties" : {
@@ -111,6 +174,11 @@
           },
           "floor_price" : {
             "type" : "number"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Версия, которую видел клиент. Если передана и не совпадает с текущей — 409 Conflict."
           }
         },
         "required" : [ "blocked_domains", "currency", "floor_price" ]

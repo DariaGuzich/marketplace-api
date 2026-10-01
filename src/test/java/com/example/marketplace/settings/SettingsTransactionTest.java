@@ -38,7 +38,7 @@ class SettingsTransactionTest {
     void settingsAreRolledBackWhenOutboxWriteFails() {
         when(outboxRepository.save(any(OutboxEntity.class)))
                 .thenThrow(new IllegalStateException("outbox is down"));
-        SettingsValues values = new SettingsValues(new BigDecimal("1.5"), "USD", List.of());
+        SettingsValues values = new SettingsValues(new BigDecimal("1.5"), "USD", List.of(), null);
 
         // К моменту падения INSERT в settings уже выполнен в базе (saveAndFlush в сервисе),
         // но транзакция не закоммичена, поэтому он откатывается

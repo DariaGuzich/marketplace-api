@@ -1,6 +1,7 @@
 package com.example.marketplace.settings;
 
 import com.example.marketplace.TestcontainersConfiguration;
+import com.example.marketplace.outbox.ConfigPayload;
 import com.example.marketplace.outbox.OutboxEntity;
 import com.example.marketplace.outbox.OutboxRepository;
 import com.example.marketplace.outbox.OutboxStatus;
@@ -38,20 +39,18 @@ class SettingsServiceTest {
 
     @Test
     void firstUpdateCreatesVersion0AndOutboxRecord() {
-        SettingsValues values = new SettingsValues(new BigDecimal("1.5"), "USD", List.of("bad.com"));
-
-        Settings saved = service.update("svc-first", values);
+        Settings saved = service.update("svc-first", values("1.5", "bad.com"));
 
         assertThat(saved.version()).isEqualTo(0L);
         assertThat(outboxFor("svc-first"))
                 .extracting(OutboxEntity::getVersion, OutboxEntity::getPayload, OutboxEntity::getStatus)
-                .containsExactly(tuple(0L, values, OutboxStatus.NEW));
+                .containsExactly(tuple(0L, new ConfigPayload(new BigDecimal("1.5"), "USD", List.of("bad.com")), OutboxStatus.NEW));
     }
 
     @Test
     void eachChangeIncrementsVersionAndAddsOutboxRecord() {
-        service.update("svc-change", new SettingsValues(new BigDecimal("1.5"), "USD", List.of()));
-        Settings saved = service.update("svc-change", new SettingsValues(new BigDecimal("2.0"), "USD", List.of()));
+        service.update("svc-change", values("1.5"));
+        Settings saved = service.update("svc-change", values("2.0"));
 
         assertThat(saved.version()).isEqualTo(1L);
         assertThat(service.get("svc-change").version()).isEqualTo(1L);
@@ -60,13 +59,16 @@ class SettingsServiceTest {
 
     @Test
     void sameValuesDoNotCreateNewVersion() {
-        SettingsValues values = new SettingsValues(new BigDecimal("1.5"), "USD", List.of("bad.com"));
-        service.update("svc-same", values);
+        service.update("svc-same", values("1.5", "bad.com"));
 
-        Settings saved = service.update("svc-same", values);
+        Settings saved = service.update("svc-same", values("1.5", "bad.com"));
 
         assertThat(saved.version()).isEqualTo(0L);
         assertThat(outboxFor("svc-same")).hasSize(1);
+    }
+
+    private static SettingsValues values(String floorPrice, String... blockedDomains) {
+        return new SettingsValues(new BigDecimal(floorPrice), "USD", List.of(blockedDomains), null);
     }
 
     private List<OutboxEntity> outboxFor(String accountId) {
