@@ -59,4 +59,8 @@ public class SettingsEntity {
     public Settings toSettings() {
         return new Settings(floorPrice, currency, blockedDomains, version);
     }
+
+    public AccountSettings toAccountSettings() {
+        return new AccountSettings(accountId, floorPrice, currency, blockedDomains, version);
+    }
 }
