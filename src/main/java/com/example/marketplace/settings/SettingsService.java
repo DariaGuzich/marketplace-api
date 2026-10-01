@@ -6,6 +6,7 @@ import com.example.marketplace.outbox.ConfigPayload;
 import com.example.marketplace.outbox.OutboxEntity;
 import com.example.marketplace.outbox.OutboxRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,20 @@ public class SettingsService {
         return settingsRepository.findById(accountId)
                 .map(SettingsEntity::toSettings)
                 .orElseThrow(() -> new SettingsNotFoundException(accountId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Account> listAccounts() {
+        return settingsRepository.findAll(Sort.by("accountId")).stream()
+                .map(entity -> new Account(entity.getAccountId()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AccountSettings> getMany(List<String> accountIds) {
+        return settingsRepository.findAllById(accountIds).stream()
+                .map(SettingsEntity::toAccountSettings)
+                .toList();
     }
 
     /**

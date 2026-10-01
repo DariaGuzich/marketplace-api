@@ -9,6 +9,27 @@
     "description" : "Generated server url"
   } ],
   "paths" : {
+    "/accounts" : {
+      "get" : {
+        "operationId" : "listAccounts",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Account"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "accounts-controller" ]
+      }
+    },
     "/accounts/{account_id}/blocked-domains" : {
       "post" : {
         "operationId" : "addBlockedDomain",
@@ -161,10 +182,76 @@
         },
         "tags" : [ "settings-controller" ]
       }
+    },
+    "/settings" : {
+      "get" : {
+        "operationId" : "getSettingsBatch",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "account_ids",
+          "required" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AccountSettings"
+                  }
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "tags" : [ "accounts-controller" ]
+      }
     }
   },
   "components" : {
     "schemas" : {
+      "Account" : {
+        "type" : "object",
+        "properties" : {
+          "account_id" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "account_id" ]
+      },
+      "AccountSettings" : {
+        "type" : "object",
+        "properties" : {
+          "account_id" : {
+            "type" : "string"
+          },
+          "blocked_domains" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "currency" : {
+            "type" : "string"
+          },
+          "floor_price" : {
+            "type" : "number"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "account_id", "blocked_domains", "currency", "floor_price", "version" ]
+      },
       "AddBlockedDomainRequest" : {
         "type" : "object",
         "properties" : {
