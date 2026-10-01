@@ -86,6 +86,21 @@ public class SettingsService {
     }
 
     /**
+     * Откат: новая версия со значениями версии toVersion. Старые версии не удаляются и не перезаписываются —
+     * откат это ещё одно изменение, оно тоже идёт через outbox и доставляется в Serving как обычное.
+     * Значения старой версии берутся из outbox (там снимок каждой версии).
+     */
+    @Transactional
+    public Settings rollback(String accountId, Long toVersion) {
+        SettingsEntity entity = settingsRepository.findById(accountId)
+                .orElseThrow(() -> new SettingsNotFoundException(accountId));
+        ConfigPayload oldValues = outboxRepository.findByAccountIdAndVersion(accountId, toVersion)
+                .map(OutboxEntity::getPayload)
+                .orElseThrow(() -> new VersionNotFoundException(accountId, toVersion));
+        return save(entity, oldValues);
+    }
+
+    /**
      * Одна транзакция: новая версия в settings и запись в outbox.
      * Если запись в outbox упадёт, изменение settings откатится вместе с ней.
      */

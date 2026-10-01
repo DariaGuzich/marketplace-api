@@ -124,6 +124,43 @@
         },
         "tags" : [ "settings-controller" ]
       }
+    },
+    "/accounts/{account_id}/settings/rollback" : {
+      "post" : {
+        "operationId" : "rollback",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "account_id",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to_version",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            },
+            "description" : "Создана новая версия со значениями версии to_version"
+          },
+          "404" : {
+            "description" : "Нет настроек аккаунта или такой версии"
+          }
+        },
+        "tags" : [ "settings-controller" ]
+      }
     }
   },
   "components" : {
